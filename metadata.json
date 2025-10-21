@@ -1,0 +1,5 @@
+{
+  "name": "Sales Dashboard Pro",
+  "description": "A comprehensive Sales Dashboard application to monitor sales orders, track performance with charts, and manage sales data. It includes a dashboard, sales order records, sales to date analysis, and a form to add new approved sales orders.",
+  "requestFramePermissions": []
+}
