@@ -33,6 +33,10 @@ export const handler: Handler = async (event) => {
         const response = await fetch(url.toString(), {
             method: event.httpMethod,
             headers: {
+                // Add more browser-like headers to bypass security
+                'Accept': 'application/json, text/plain, */*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': event.headers['referer'] || 'https://so-moni.netlify.app/',
                 // Pass through the Content-Type header from the client, defaulting if not present.
                 'Content-Type': event.headers['content-type'] || 'application/json',
                 // Add a standard User-Agent header to mimic a browser request
