@@ -1,54 +1,79 @@
-import type { Handler, HandlerEvent } from "@netlify/functions";
+import type { Handler } from "@netlify/functions";
 
-// The real backend API endpoint
-const API_ENDPOINT = 'https://so-monitoring.infinityfree.me/salespro/api.php';
+// The remote API endpoint to which requests will be proxied.
+const TARGET_URL = 'https://so-monitoring.infinityfree.me/salespro/api.php';
 
-const handler: Handler = async (event: HandlerEvent) => {
-  try {
-    // Construct the full API URL with the action parameter
-    const action = event.queryStringParameters?.action || '';
-    const url = `${API_ENDPOINT}?${new URLSearchParams({ action })}`;
-
-    let response;
-
-    // Handle POST requests for adding new SOs
-    if (event.httpMethod === 'POST') {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: event.body,
-      });
-    } else { 
-      // Handle GET requests for fetching data
-      response = await fetch(url);
+export const handler: Handler = async (event) => {
+    // Handle CORS preflight requests
+    if (event.httpMethod === 'OPTIONS') {
+        return {
+            statusCode: 204, // No Content
+            headers: {
+                'Access-Control-Allow-Origin': '*', // Allow any origin
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            },
+            body: ''
+        };
     }
 
-    // Check if the fetch to the backend was successful
-    if (!response.ok) {
-      return {
-        statusCode: response.status,
-        body: `Error fetching from backend API: ${await response.text()}`,
-      };
-    }
-    
-    // Get the data from the backend
-    const data = await response.json();
+    const url = new URL(TARGET_URL);
 
-    // Return the successful response to the frontend
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    };
-  } catch (error) {
-    // Handle any unexpected errors in the function
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error instanceof Error ? error.message : 'An unknown error occurred in the proxy function.' }),
-    };
-  }
+    // Forward query string parameters from the client request
+    if (event.queryStringParameters) {
+        Object.entries(event.queryStringParameters).forEach(([key, value]) => {
+            if (value) {
+                url.searchParams.append(key, value);
+            }
+        });
+    }
+
+    try {
+        // Forward the request to the target API
+        const response = await fetch(url.toString(), {
+            method: event.httpMethod,
+            headers: {
+                // Pass through the Content-Type header from the client, defaulting if not present.
+                'Content-Type': event.headers['content-type'] || 'application/json',
+            },
+            // Include the body only for relevant methods
+            body: event.httpMethod !== 'GET' && event.httpMethod !== 'HEAD' ? event.body : undefined,
+        });
+
+        // Read the response body as text to handle both JSON and non-JSON responses
+        const responseData = await response.text();
+
+        // Create headers for the client response, starting with CORS
+        const responseHeaders: { [key: string]: string } = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        };
+
+        // Forward headers from the target API response
+        response.headers.forEach((value, key) => {
+            // Avoid forwarding headers that are controlled by the Netlify platform
+            if (!['transfer-encoding', 'connection', 'content-encoding', 'server'].includes(key.toLowerCase())) {
+                responseHeaders[key] = value;
+            }
+        });
+
+        return {
+            statusCode: response.status,
+            headers: responseHeaders,
+            body: responseData,
+        };
+    } catch (error) {
+        console.error('API proxy error:', error);
+        return {
+            statusCode: 502, // Bad Gateway
+            headers: { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            body: JSON.stringify({ 
+                error: 'Failed to proxy request to the target API.',
+                details: error instanceof Error ? error.message : String(error)
+            }),
+        };
+    }
 };
-
-export { handler };

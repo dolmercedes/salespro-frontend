@@ -10,7 +10,7 @@
   directory = "netlify/functions"
 
 # This is the "catch-all" rule for your Single-Page Application (SPA).
-# It serves your index.html for any path that wasn't matched by a function.
+# It serves your index.html for any path that wasn't matched by a file or function.
 # This allows client-side routing to work correctly when you refresh the page.
 [[redirects]]
   from = "/*"
