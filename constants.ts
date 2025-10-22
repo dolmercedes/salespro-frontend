@@ -1,2 +1,1 @@
-// The path to your Netlify Function, which acts as a secure proxy.
-export const API_BASE_URL = '/.netlify/functions/api';
+export const API_BASE_URL = 'https://so-monitoring.infinityfree.me/salespro/api.php';
