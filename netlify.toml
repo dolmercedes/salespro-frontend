@@ -3,18 +3,10 @@
   command = "vite build"
   publish = "dist"
 
-# This is the API proxy rule. It MUST come BEFORE the "catch-all" rule below.
-# It forwards any request starting with "/api" to your backend server.
-# Query parameters like "?action=..." are passed through automatically.
-[[redirects]]
-  from = "/api/*"
-  to = "https://example.com"
-  status = 200
-  force = true
-
 # This is the "catch-all" rule for your Single-Page Application (SPA).
-# It serves your index.html for any path that wasn't matched above.
-# This allows client-side routing to work correctly when you refresh the page.
+# It serves your index.html for any path requested. This is essential
+# for client-side routing (like your hash-based navigation) to work correctly
+# when a user refreshes the page or navigates directly to a deep link.
 [[redirects]]
   from = "/*"
   to = "/index.html"

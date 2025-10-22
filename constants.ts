@@ -1,4 +1,3 @@
-// The API base URL is now a relative path that points to our Netlify proxy.
-// This prevents CORS errors by making the browser think it's requesting
-// data from the same domain. Netlify will forward the request to the real API.
-export const API_BASE_URL = '/api';
+// The full, absolute path to your backend API.
+// This requires the backend server to have CORS headers configured.
+export const API_BASE_URL = 'https://so-monitoring.infinityfree.me/salespro/api.php';
