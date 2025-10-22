@@ -1,3 +1,2 @@
-// The full, absolute path to your backend API.
-// This requires the backend server to have CORS headers configured.
-export const API_BASE_URL = 'https://so-monitoring.infinityfree.me/salespro/api.php';
+// The path to your Netlify Function, which acts as a secure proxy.
+export const API_BASE_URL = '/.netlify/functions/api';

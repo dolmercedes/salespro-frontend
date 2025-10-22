@@ -3,10 +3,15 @@
   command = "vite build"
   publish = "dist"
 
+# This section tells Netlify where to find your serverless functions.
+# The function at `netlify/functions/api.ts` will be available at
+# `/.netlify/functions/api` on your deployed site.
+[functions]
+  directory = "netlify/functions"
+
 # This is the "catch-all" rule for your Single-Page Application (SPA).
-# It serves your index.html for any path requested. This is essential
-# for client-side routing (like your hash-based navigation) to work correctly
-# when a user refreshes the page or navigates directly to a deep link.
+# It serves your index.html for any path that wasn't matched by a function.
+# This allows client-side routing to work correctly when you refresh the page.
 [[redirects]]
   from = "/*"
   to = "/index.html"
