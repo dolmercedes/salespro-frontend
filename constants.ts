@@ -1,1 +1,1 @@
-export const API_BASE_URL = 'https://so-monitoring.infinityfree.me/salespro/api.php';
+export const API_BASE_URL = '/.netlify/functions/api';

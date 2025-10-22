@@ -1,85 +1,69 @@
-import type { Handler } from "@netlify/functions";
+import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
 
-// The remote API endpoint to which requests will be proxied.
-const TARGET_URL = 'https://so-monitoring.infinityfree.me/salespro/api.php';
+const REAL_API_URL = 'https://so-monitoring.infinityfree.me/salespro/api.php';
 
-export const handler: Handler = async (event) => {
-    // Handle CORS preflight requests
-    if (event.httpMethod === 'OPTIONS') {
-        return {
-            statusCode: 204, // No Content
-            headers: {
-                'Access-Control-Allow-Origin': '*', // Allow any origin
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            },
-            body: ''
-        };
+const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+  try {
+    const action = event.queryStringParameters?.['action'] || '';
+    const targetUrl = `${REAL_API_URL}?${new URLSearchParams(event.queryStringParameters || {}).toString()}`;
+
+    // These headers make the request look like it's from a real browser,
+    // which is necessary to bypass the InfinityFree anti-bot security.
+    const headers = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Referer': 'https://so-moni.netlify.app/',
+    };
+
+    let response;
+
+    if (event.httpMethod === 'POST') {
+      response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: event.body,
+      });
+    } else {
+      response = await fetch(targetUrl, {
+        method: 'GET',
+        headers: headers,
+      });
+    }
+    
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error('Backend error:', errorBody);
+      return {
+        statusCode: response.status,
+        body: JSON.stringify({ success: false, error: `Backend request failed with status ${response.status}`, details: errorBody.substring(0, 500) }),
+      };
     }
 
-    const url = new URL(TARGET_URL);
+    const data = await response.json();
 
-    // Forward query string parameters from the client request
-    if (event.queryStringParameters) {
-        Object.entries(event.queryStringParameters).forEach(([key, value]) => {
-            if (value) {
-                url.searchParams.append(key, value);
-            }
-        });
-    }
-
-    try {
-        // Forward the request to the target API
-        const response = await fetch(url.toString(), {
-            method: event.httpMethod,
-            headers: {
-                // Add more browser-like headers to bypass security
-                'Accept': 'application/json, text/plain, */*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Referer': event.headers['referer'] || 'https://so-moni.netlify.app/',
-                // Pass through the Content-Type header from the client, defaulting if not present.
-                'Content-Type': event.headers['content-type'] || 'application/json',
-                // Add a standard User-Agent header to mimic a browser request
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            },
-            // Include the body only for relevant methods
-            body: event.httpMethod !== 'GET' && event.httpMethod !== 'HEAD' ? event.body : undefined,
-        });
-
-        // Read the response body as text to handle both JSON and non-JSON responses
-        const responseData = await response.text();
-
-        // Create headers for the client response, starting with CORS
-        const responseHeaders: { [key: string]: string } = {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        };
-
-        // Forward headers from the target API response
-        response.headers.forEach((value, key) => {
-            // Avoid forwarding headers that are controlled by the Netlify platform
-            if (!['transfer-encoding', 'connection', 'content-encoding', 'server'].includes(key.toLowerCase())) {
-                responseHeaders[key] = value;
-            }
-        });
-
-        return {
-            statusCode: response.status,
-            headers: responseHeaders,
-            body: responseData,
-        };
-    } catch (error) {
-        console.error('API proxy error:', error);
-        return {
-            statusCode: 502, // Bad Gateway
-            headers: { 
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
-            },
-            body: JSON.stringify({ 
-                error: 'Failed to proxy request to the target API.',
-                details: error instanceof Error ? error.message : String(error)
-            }),
-        };
-    }
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*', // Allows the browser to access this response
+      },
+      body: JSON.stringify(data),
+    };
+  } catch (error) {
+    console.error('Proxy function error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ 
+          success: false, 
+          error: 'An error occurred in the proxy function.',
+          details: error instanceof Error ? error.message : String(error)
+      }),
+    };
+  }
 };
+
+export { handler };
