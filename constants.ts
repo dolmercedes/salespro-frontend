@@ -1,1 +1,1 @@
-export const API_BASE_URL = '/.netlify/functions/api';
+export const API_BASE_URL = 'salespro-api-production.up.railway.app';
