@@ -1,0 +1,2 @@
+/api/*  https://so-monitoring.infinityfree.me/salespro/api.php/:splat  200
+/*      /index.html  200

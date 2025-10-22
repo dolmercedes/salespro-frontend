@@ -36,7 +36,18 @@ const SORecords: React.FC = () => {
       setLoading(true);
       try {
         const response = await fetch(`${API_BASE_URL}?action=get_so_records`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const responseText = await response.text();
+            console.error("Received non-JSON response:", responseText);
+            throw new TypeError(`Expected JSON, but got ${contentType}. Response body: ${responseText.substring(0, 500)}...`);
+        }
+        
         const result = await response.json();
         if (result.success) {
           setRecords(result.data.records);
@@ -115,7 +126,7 @@ const SORecords: React.FC = () => {
   ];
 
   if (loading) return <div className="text-center p-10">Loading SO Records...</div>;
-  if (error) return <div className="text-center p-10 text-red-500">{error}</div>;
+  if (error) return <div className="text-center p-10 text-red-500 bg-red-100 dark:bg-red-900 dark:text-red-200 rounded-lg">{error}</div>;
 
   return (
     <div>

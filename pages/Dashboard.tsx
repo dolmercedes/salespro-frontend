@@ -8,9 +8,11 @@ interface MonthlySale {
   name: string;
   sales: number;
 }
+// FIX: Added an index signature to resolve TypeScript error with Recharts Pie component data prop.
 interface ClientsPerSalesman {
   name: string;
   value: number;
+  [key: string]: any;
 }
 interface TopSalesman {
     name: string;
@@ -36,8 +38,17 @@ const Dashboard: React.FC = () => {
             try {
                 const response = await fetch(`${API_BASE_URL}?action=get_dashboard_data`);
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
                 }
+
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    const responseText = await response.text();
+                    console.error("Received non-JSON response:", responseText);
+                    throw new TypeError(`Expected JSON, but got ${contentType}. Response body: ${responseText.substring(0, 500)}...`);
+                }
+
                 const result = await response.json();
                 if (result.success) {
                     setStats(result.data.stats);
@@ -66,7 +77,7 @@ const Dashboard: React.FC = () => {
     const tickColor = theme === 'dark' ? '#94a3b8' : '#6b7280';
     
     if (loading) return <div className="text-center p-10">Loading Dashboard...</div>;
-    if (error) return <div className="text-center p-10 text-red-500">{error}</div>;
+    if (error) return <div className="text-center p-10 text-red-500 bg-red-100 dark:bg-red-900 dark:text-red-200 rounded-lg">{error}</div>;
 
     return (
     <div>

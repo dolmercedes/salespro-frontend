@@ -23,6 +23,19 @@ const AddSO: React.FC = () => {
                 },
                 body: JSON.stringify(data),
             });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+            }
+
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                const responseText = await response.text();
+                console.error("Received non-JSON response:", responseText);
+                throw new TypeError(`Expected JSON, but got ${contentType}. Response body: ${responseText.substring(0, 500)}...`);
+            }
+
             const result = await response.json();
             
             if (result.success) {
