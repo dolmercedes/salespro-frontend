@@ -35,6 +35,8 @@ export const handler: Handler = async (event) => {
             headers: {
                 // Pass through the Content-Type header from the client, defaulting if not present.
                 'Content-Type': event.headers['content-type'] || 'application/json',
+                // Add a standard User-Agent header to mimic a browser request
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             },
             // Include the body only for relevant methods
             body: event.httpMethod !== 'GET' && event.httpMethod !== 'HEAD' ? event.body : undefined,
